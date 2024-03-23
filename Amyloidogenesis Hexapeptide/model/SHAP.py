@@ -1,0 +1,71 @@
+import pandas as pd
+import numpy as np
+import xgboost as xgb
+import matplotlib.pylab as plt
+from sklearn.model_selection import train_test_split
+import shap
+
+train_dataset = pd.read_csv('D:\Coding\P1\Hexapeptide Amyloidogenesis\data\TrainingDataset.csv')
+test_dataset = pd.read_csv('D:\Coding\P1\Hexapeptide Amyloidogenesis\data\TestingDataset.csv')
+# 提取特征和标签
+y_train = train_dataset['label']
+y_train = np.array(y_train)
+y_test = test_dataset['label']
+y_test = np.array(y_test)
+y = np.concatenate((y_train,y_test), axis=0)
+train_dataset_feature_name = r'D:\Coding\P1\Hexapeptide Amyloidogenesis\train_data_feature.csv'
+train_dataset_feature= pd.read_csv(train_dataset_feature_name, header=0,  delimiter=',')
+test_dataset_feature_name = r'D:\Coding\P1\Hexapeptide Amyloidogenesis\test_data_feature.csv'
+test_dataset_feature = pd.read_csv(test_dataset_feature_name, header=0,  delimiter=',')
+# X_test_data = np.concatenate((train_dataset_feature,test_dataset_feature), axis=0)
+X_train = np.array(train_dataset_feature)
+X_test = np.array(test_dataset_feature)
+
+print(X_train.shape,X_test.shape)
+# 训练 XGBoost 模型用于特征选择
+clf_xgb = xgb.XGBClassifier(n_estimators=100, random_state=0)
+clf_xgb.fit(X_train, y_train)
+
+# 计算 SHAP 值
+explainer = shap.TreeExplainer(clf_xgb)
+shap_values = explainer.shap_values(X_test)
+
+# 获取特征名称
+feature_names = [f'MF_{i}' for i in range(1, 1025)] + [f'DDE_{i}' for i in range(1, 401)] + [f'blousum_{i}' for i in range(1, 121)]+[f'AAC_{i}' for i in range(1, 21)]
+
+# 创建两个子图
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 10))
+
+# 第一个子图 - SHAP摘要图 (Bar)
+shap.summary_plot(shap_values, X_test, max_display=30, show=False, title="SHAP Summary Plot", feature_names=feature_names, plot_size=(12, 10))
+# Set x-axis labels at the center of each column and adjust font size
+
+plt.sca(ax1)
+# 第二个子图 - SHAP摘要图
+shap.summary_plot(shap_values, X_test,max_display=30,  plot_type="bar", show=False, title="SHAP Summary Plot (Bar)", feature_names=feature_names, plot_size=(12, 10))
+# 不显示ax2的y轴标签
+ax1.tick_params(axis='x', labelsize=14)
+ax2.tick_params(axis='x', labelsize=14)
+
+# Set y-axis label font size for both subplots
+ax1.tick_params(axis='y', labelsize=14)
+ax2.tick_params(axis='y', labelsize=14)
+ax2.set_yticklabels([])
+plt.sca(ax2)
+
+# 调整子图位置
+fig.subplots_adjust(wspace=0.1)  # 调整两个子图之间的距离
+plt.tight_layout()
+# 设置横坐标标签在每列中间位置，调整字体大小
+plt.xticks( fontsize=14)
+# 设置纵坐标标签字体大小
+plt.yticks(fontsize=14)
+# 显示图
+plt.show()
+
+
+
+
+
+
+
